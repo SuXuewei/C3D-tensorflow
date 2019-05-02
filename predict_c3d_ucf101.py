@@ -68,8 +68,12 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
   return var
 
 def run_test():
-  model_name = "./sports1m_finetuning_ucf101.model"
-  test_list_file = 'list/test.list'
+  #20190501 su sta
+  #model_name = "./sports1m_finetuning_ucf101.model"
+  model_name = "./c3d_ucf101_finetune_whole_iter_20000_TF.model"
+  #test_list_file = 'list/test.list'
+  test_list_file = './test.list'
+  #20190501 su end
   num_test_videos = len(list(open(test_list_file,'r')))
   print("Number of test videos={}".format(num_test_videos))
 
@@ -117,7 +121,10 @@ def run_test():
   saver.restore(sess, model_name)
   # And then after everything is built, start the training loop.
   bufsize = 0
-  write_file = open("predict_ret.txt", "w+", bufsize)
+  #20190501 su sta
+  #write_file = open("predict_ret.txt", "w+", bufsize)
+  write_file = open("predict_ret.txt", "w+")
+  #20190501 su end
   next_start_pos = 0
   all_steps = int((num_test_videos - 1) / (FLAGS.batch_size * gpu_num) + 1)
   for step in xrange(all_steps):

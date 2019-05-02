@@ -1,0 +1,8 @@
+models/
+UCF-101/
+UCF-101_BK/
+visual_logs/
+*.model
+*.list
+list/*.list
+
