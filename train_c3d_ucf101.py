@@ -119,13 +119,17 @@ def run_training():
   use_pretrained_model = True 
   model_filename = "./sports1m_finetuning_ucf101.model"
 
+  #设置当前这个新图对象为默认图，程序执行是默认执行该图的运算流程
+  #tf.Graph()实例化一个新的图对象，该对象调用自身.as_default()方法将自身设置为程序默认执行的计算图
   with tf.Graph().as_default():
+    #获取或创建变量global_step
     global_step = tf.get_variable(
                     'global_step',
                     [],
-                    initializer=tf.constant_initializer(0),
-                    trainable=False
+                    initializer=tf.constant_initializer(0), #变量初始化成0
+                    trainable=False #该变量不可训练
                     )
+    #images_placeholder和labels_placeholder来存放当批次训练用的图像数据和图像数据对应的标签类别
     images_placeholder, labels_placeholder = placeholder_inputs(
                     FLAGS.batch_size * gpu_num
                     )
@@ -134,8 +138,12 @@ def run_training():
     logits = []
     opt_stable = tf.train.AdamOptimizer(1e-4)
     opt_finetuning = tf.train.AdamOptimizer(1e-3)
+    #定义一个域名为var_name的作用域，在其下面创建两个变量weights,biases
     with tf.variable_scope('var_name') as var_scope:
       weights = {
+              #具体看上面这个函数的定义
+              #[3,3,3,3,64] 时间维度上的3，图像上的3*3kernal，图像上的一点有RGB三个维度表示，所以第四个数是3，最后一个数输出的维度64
+              #理论上该层产生的每一个维度都有对应的kernal，以wc1为例（3,3,3,3），然后用64个kernal，产生了64个特征节点，作为下一层的输入
               'wc1': _variable_with_weight_decay('wc1', [3, 3, 3, 3, 64], 0.0005),
               'wc2': _variable_with_weight_decay('wc2', [3, 3, 3, 64, 128], 0.0005),
               'wc3a': _variable_with_weight_decay('wc3a', [3, 3, 3, 128, 256], 0.0005),
@@ -165,10 +173,10 @@ def run_training():
       with tf.device('/gpu:%d' % gpu_index):
         
         varlist2 = [ weights['out'],biases['out'] ]
-	#20190501 su sta
-	#varlist1 = list( set(weights.values() + biases.values()) - set(varlist2) )
+        #20190501 su sta
+        #varlist1 = list( set(weights.values() + biases.values()) - set(varlist2) )
         varlist1 = list( set(list(weights.values()) + list(biases.values())) - set(varlist2) )
-	#20190501 su end 
+        #20190501 su end
         logit = c3d_model.inference_c3d(
                         images_placeholder[gpu_index * FLAGS.batch_size:(gpu_index + 1) * FLAGS.batch_size,:,:,:,:],
                         0.5,
@@ -221,10 +229,10 @@ def run_training():
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
       train_images, train_labels, _, _, _ = input_data.read_clip_and_label(
-		      #20190501 su sta
+                      #20190501 su sta
                       #filename='list/train.list',
                       filename='./train.list',
-		      #20190501 su end
+                      #20190501 su end
                       batch_size=FLAGS.batch_size * gpu_num,
                       num_frames_per_clip=c3d_model.NUM_FRAMES_PER_CLIP,
                       crop_size=c3d_model.CROP_SIZE,
@@ -250,10 +258,10 @@ def run_training():
         train_writer.add_summary(summary, step)
         print('Validation Data Eval:')
         val_images, val_labels, _, _, _ = input_data.read_clip_and_label(
-		        #20190501 su sta
+                        #20190501 su sta
                         #filename='list/test.list',
                         filename='./test.list',
-		        #20190501 su end
+                        #20190501 su end
                         batch_size=FLAGS.batch_size * gpu_num,
                         num_frames_per_clip=c3d_model.NUM_FRAMES_PER_CLIP,
                         crop_size=c3d_model.CROP_SIZE,

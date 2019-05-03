@@ -69,8 +69,8 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
 
 def run_test():
   #20190501 su sta
-  #model_name = "./sports1m_finetuning_ucf101.model"
-  model_name = "./c3d_ucf101_finetune_whole_iter_20000_TF.model"
+  model_name = "./sports1m_finetuning_ucf101.model"
+  #model_name = "./c3d_ucf101_finetune_whole_iter_20000_TF.model"
   #test_list_file = 'list/test.list'
   test_list_file = './test.list'
   #20190501 su end
@@ -120,8 +120,8 @@ def run_test():
   # Create a saver for writing training checkpoints.
   saver.restore(sess, model_name)
   # And then after everything is built, start the training loop.
-  bufsize = 0
   #20190501 su sta
+  #bufsize = 0
   #write_file = open("predict_ret.txt", "w+", bufsize)
   write_file = open("predict_ret.txt", "w+")
   #20190501 su end

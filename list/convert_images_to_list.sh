@@ -20,18 +20,46 @@
 #       /Volumes/passport/datasets/action_kth/origin_images/handclapping/person01_handclapping_d2_uncomp 1
 #       ...
 
+#先删除train.list和test.list文件
 > train.list
 > test.list
 COUNT=-1
+TOTAL_COUNT=0
+TRAIN_COUNT=0
+TEST_COUNT=0
 for folder in $1/*
 do
     COUNT=$[$COUNT + 1]
+    TOTAL_COUNT=0
+    TRAIN_COUNT=0
+    TEST_COUNT=0
     for imagesFolder in "$folder"/*
     do
-        if (( $(jot -r 1 1 $2)  > 1 )); then
-            echo "$imagesFolder" $COUNT >> train.list
+        if (($TOTAL_COUNT < 15)); then
+            #前15条随机分（大体看了图片数据，每类中有25个图片文件夹），后面的则要考虑训练测试比率进行分配训练和测试数据
+            #jot -r 1 1 $2, 使用jot产生随机数（-r）一个（-r后面的第一个数值1标示），范围从1到$2,左右都是闭区间，$2是调用脚本时传入的第二个参数
+            #这样使用容易产生部分例子只在train.list或test.list中，测试时可能出现正确率为0的情况
+            if (( $(jot -r 1 1 $2)  > 1 )); then
+                TRAIN_COUNT=$[$TRAIN_COUNT + 1]
+                echo "$imagesFolder" $COUNT >> train.list
+            else
+                TEST_COUNT=$[$TEST_COUNT + 1]
+                echo "$imagesFolder" $COUNT >> test.list
+            fi
         else
-            echo "$imagesFolder" $COUNT >> test.list
-        fi        
+            if (($TEST_COUNT > 0)); then
+                if (($(expr $TRAIN_COUNT / $TEST_COUNT) < $2)); then
+                    TRAIN_COUNT=$[$TRAIN_COUNT + 1]
+                    echo "$imagesFolder" $COUNT >> train.list
+                else
+                    TEST_COUNT=$[$TEST_COUNT + 1]
+                    echo "$imagesFolder" $COUNT >> test.list
+                fi
+            else
+                TEST_COUNT=$[$TEST_COUNT + 1]
+                echo "$imagesFolder" $COUNT >> test.list
+            fi
+        fi
+        TOTAL_COUNT=$[$TOTAL_COUNT + 1]
     done
 done
