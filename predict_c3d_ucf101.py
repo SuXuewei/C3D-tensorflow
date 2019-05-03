@@ -32,6 +32,9 @@ flags = tf.app.flags
 gpu_num = 2
 flags.DEFINE_integer('batch_size', 10 , 'Batch size.')
 FLAGS = flags.FLAGS
+#20190502 su sta
+model_save_dir = './models/'
+#20190502 su end
 
 def placeholder_inputs(batch_size):
   """Generate placeholder variables to represent the input tensors.
@@ -118,7 +121,9 @@ def run_test():
   init = tf.global_variables_initializer()
   sess.run(init)
   # Create a saver for writing training checkpoints.
-  saver.restore(sess, model_name)
+  model_file = tf.train.latest_checkpoint(model_save_dir)
+  saver.restore(sess, model_file)
+  #saver.restore(sess, model_name)
   # And then after everything is built, start the training loop.
   #20190501 su sta
   #bufsize = 0
@@ -126,6 +131,9 @@ def run_test():
   write_file = open("predict_ret.txt", "w+")
   #20190501 su end
   next_start_pos = 0
+  #20190502 su sta
+  right_count = 0;
+  #20190502 su end
   all_steps = int((num_test_videos - 1) / (FLAGS.batch_size * gpu_num) + 1)
   for step in xrange(all_steps):
     # Fill a feed dictionary with the actual set of images and labels
@@ -150,6 +158,20 @@ def run_test():
               predict_score[i][true_label],
               top1_predicted_label,
               predict_score[i][top1_predicted_label]))
+      if true_label[0] == top1_predicted_label:
+          right_count = right_count + 1
+
+  #20190502 su sta
+  accuracy = right_count / num_test_videos;
+  write_file.write("model file: " + model_file + "\n")
+  write_file.write("total count: %d\n" % num_test_videos)
+  write_file.write("right count: %d\n" % right_count)
+  write_file.write("accuracy: " + "{:.5f}\n".format(accuracy))
+  print("model file: " + model_file)
+  print("total count: %d" % num_test_videos)
+  print("right count: %d" % right_count)
+  print("accuracy: " + "{:.5f}".format(accuracy))
+  #20190502 su end
   write_file.close()
   print("done")
 
