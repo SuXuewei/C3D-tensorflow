@@ -5,4 +5,5 @@ visual_logs/
 *.model
 *.list
 list/*.list
+.ideal/
 
