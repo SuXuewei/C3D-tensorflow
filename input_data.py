@@ -34,8 +34,8 @@ def get_frames_data(filename, start_index=-1, num_frames_per_clip=16):
   ret_arr = []
   s_index = 0
 
-  print("filename : " + filename)
-  print("start_index: %d" % int(start_index))
+  #print("filename : " + filename)
+  #print("start_index: %d" % int(start_index))
 
   for parent, dirnames, filenames in os.walk(filename):
     if(len(filenames)<num_frames_per_clip):
@@ -46,8 +46,8 @@ def get_frames_data(filename, start_index=-1, num_frames_per_clip=16):
       s_index = random.randint(0, len(filenames) - num_frames_per_clip)
     else:
       s_index = start_index
-    print("filenames s_index: %d" % s_index)
-    print("filenames count: %d" % len(filenames))
+    #print("filenames s_index: %d" % s_index)
+    #print("filenames count: %d" % len(filenames))
     #20190508 su 去指定范围的数据帧
     for i in range(s_index, s_index + num_frames_per_clip):
       image_name = str(filename) + '/' + str(filenames[i])
@@ -91,9 +91,9 @@ def read_clip_and_label(filename, batch_size, start_pos=-1, num_frames_per_clip=
     #20190508 su sta 截取固定起止数据帧所以下标
     tmp_start_index = line[2]
 
-    print("dirname : " + dirname)
-    print("tmp_label: %d" % int(tmp_label))
-    print("tmp_start_index: %d" % int(tmp_start_index))
+    #print("dirname : " + dirname)
+    #print("tmp_label: %d" % int(tmp_label))
+    #print("tmp_start_index: %d" % int(tmp_start_index))
     # 20190508 su end
     if not shuffle:
       print("Loading a video clip from {}...".format(dirname))
