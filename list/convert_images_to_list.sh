@@ -23,6 +23,7 @@
 # 20190508 su sta
 # 1. 为便于测试验证，测试与验证集合数据强制按比例分配
 # 2. 为便于后面确认参与训练，测试的数据帧范围，在list中标出参与的数据帧起始下标和个数
+# 3. 剔除不足16帧视频
 # 20190508 su end
 
 #先删除train.list和test.list文件
@@ -38,6 +39,15 @@ do
     TEST_COUNT=0
     for imagesFolder in "$folder"/*
     do
+        START_INDEX=-1
+        FILE_COUNT=$(ls "$imagesFolder"/* | wc -w)
+        if(($FILE_COUNT >= $NUMB_FRAMES_PER_CLIP)); then
+            UP_BOUND=$[$FILE_COUNT - $NUMB_FRAMES_PER_CLIP];
+            START_INDEX=$(jot -r 1 0 $UP_BOUND)
+        else
+            continue
+        fi
+
         ADD_TO_TRAIN_LIST=1
         if (($TOTAL_COUNT < 15)); then
             #前15条随机分（大体看了图片数据，每类中有25个图片文件夹），后面的则要考虑训练测试比率进行分配训练和测试数据
@@ -63,16 +73,10 @@ do
             fi
         fi
 
-        START_INDEX=-1
-        FILE_COUNT=$(ls | wc -w)
-        if(($FILE_COUNT >= $NUMB_FRAMES_PER_CLIP)); then
-            UP_BOUND=$[$FILE_COUNT - $NUMB_FRAMES_PER_CLIP];
-            START_INDEX=$(jot -r 1 0 $UP_BOUND)
-        fi
         if (($ADD_TO_TRAIN_LIST == 1)); then
-            echo "$imagesFolder" $COUNT $START_INDEX >> train.list
+            echo "$imagesFolder" $COUNT $START_INDEX $FILE_COUNT>> train.list
         else
-            echo "$imagesFolder" $COUNT $START_INDEX >> test.list
+            echo "$imagesFolder" $COUNT $START_INDEX $FILE_COUNT>> test.list
         fi
         TOTAL_COUNT=$[$TOTAL_COUNT + 1]
     done

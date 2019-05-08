@@ -27,16 +27,28 @@ import numpy as np
 import cv2
 import time
 
-def get_frames_data(filename, num_frames_per_clip=16):
+#20190508 su 参数添加start_index,方便取指定位置的数据帧
+def get_frames_data(filename, start_index=-1, num_frames_per_clip=16):
   ''' Given a directory containing extracted frames, return a video clip of
   (num_frames_per_clip) consecutive frames as a list of np arrays '''
   ret_arr = []
   s_index = 0
+
+  print("filename : " + filename)
+  print("start_index: %d" % int(start_index))
+
   for parent, dirnames, filenames in os.walk(filename):
     if(len(filenames)<num_frames_per_clip):
       return [], s_index
     filenames = sorted(filenames)
-    s_index = random.randint(0, len(filenames) - num_frames_per_clip)
+    #20190508 su 如果指定了起始位置则取指定范围的数据帧
+    if(start_index < 0):
+      s_index = random.randint(0, len(filenames) - num_frames_per_clip)
+    else:
+      s_index = start_index
+    print("filenames s_index: %d" % s_index)
+    print("filenames count: %d" % len(filenames))
+    #20190508 su 去指定范围的数据帧
     for i in range(s_index, s_index + num_frames_per_clip):
       image_name = str(filename) + '/' + str(filenames[i])
       img = Image.open(image_name)
@@ -76,9 +88,18 @@ def read_clip_and_label(filename, batch_size, start_pos=-1, num_frames_per_clip=
     line = lines[index].strip('\n').split()
     dirname = line[0]
     tmp_label = line[1]
+    #20190508 su sta 截取固定起止数据帧所以下标
+    tmp_start_index = line[2]
+
+    print("dirname : " + dirname)
+    print("tmp_label: %d" % int(tmp_label))
+    print("tmp_start_index: %d" % int(tmp_start_index))
+    # 20190508 su end
     if not shuffle:
       print("Loading a video clip from {}...".format(dirname))
-    tmp_data, _ = get_frames_data(dirname, num_frames_per_clip)
+    #20190508 su sta 传入起始数据帧下标，取指定范围的数据帧
+    tmp_data, _ = get_frames_data(dirname, int(tmp_start_index), num_frames_per_clip)
+    #20190508 su end
     img_datas = [];
     if(len(tmp_data)!=0):
       for j in xrange(len(tmp_data)):
