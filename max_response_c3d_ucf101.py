@@ -32,20 +32,21 @@ import tensorflow as tf
 import input_data
 import c3d_model
 import numpy as np
+import random
 
 # Basic model parameters as external flags.
 flags = tf.app.flags
 gpu_num = 2
 # 20190507 su sta
-# 一个视频由16帧组成，每一帧生成一个16帧的视频作为输入，给c3d模型，获取该镇对应真实类的概率
+# 一个视频由16帧组成，每一帧生成一个16帧的视频作为输入，给c3d模型，获取该帧对应真实类的概率
 # 取原始视频16帧中对应概率最大的一个，由于硬件限制批次由10降为8，一个视频生成的16个输入视频
 # 分两份每份8个视频放到两个GPU上跑
 # 20190507 su end
 flags.DEFINE_integer('batch_size', 8, 'Batch size.')
 FLAGS = flags.FLAGS
-#20190502 su sta
+# 20190502 su sta
 model_save_dir = './models/'
-#20190502 su end
+# 20190502 su end
 
 def placeholder_inputs(batch_size):
   """Generate placeholder variables to represent the input tensors.
@@ -129,55 +130,69 @@ def run_test():
   # Create a saver for writing training checkpoints.
   model_file = tf.train.latest_checkpoint(model_save_dir)
   saver.restore(sess, model_file)
-  #saver.restore(sess, model_name)
-  # And then after everything is built, start the training loop.
-  #20190501 su sta
-  #bufsize = 0
-  #write_file = open("predict_ret.txt", "w+", bufsize)
-  write_file = open("predict_ret.txt", "w+")
-  #20190501 su end
+  write_file = open("key_frames.list", "w+")
   next_start_pos = 0
-  #20190502 su sta
-  right_count = 0;
-  #20190502 su end
-  all_steps = int((num_test_videos - 1) / (FLAGS.batch_size * gpu_num) + 1)
-  for step in xrange(all_steps):
-    # Fill a feed dictionary with the actual set of images and labels
-    # for this particular training step.
+  right_count = 0
+  random_right_count = 0
+  random_frame_index = 0
+  top1_predicted_label = 0
+  for step in xrange(num_test_videos):
     start_time = time.time()
-    test_images, test_labels, next_start_pos, _, valid_len = \
-            input_data.read_clip_and_label(
+    test_images, test_labels, next_start_pos, read_dirnames, frame_start_index = \
+            input_data.read_vedio_clips_and_label(
                     test_list_file,
-                    FLAGS.batch_size * gpu_num,
-                    start_pos=next_start_pos
+                    start_pos=step
                     )
     predict_score = norm_score.eval(
             session=sess,
             feed_dict={images_placeholder: test_images}
             )
-    for i in range(0, valid_len):
-      true_label = test_labels[i],
-      top1_predicted_label = np.argmax(predict_score[i])
-      # Write results: true label, class prob for true label, predicted label, class prob for predicted label
-      write_file.write('{}, {}, {}, {}\n'.format(
-              true_label[0],
-              predict_score[i][true_label],
-              top1_predicted_label,
-              predict_score[i][top1_predicted_label]))
-      if true_label[0] == top1_predicted_label:
-          right_count = right_count + 1
+    valid_len = len(test_images)
+    key_frame_index = 0
+    true_label = test_labels[key_frame_index]
+    max_accuracy = predict_score[key_frame_index][true_label]
 
-  #20190502 su sta
-  accuracy = right_count / num_test_videos;
+    #print("read_dirnames: " + read_dirnames[0])
+    #print("true_label: %d" % true_label)
+
+    for i in range(0, valid_len):
+      if (max_accuracy < predict_score[i][true_label]):
+        key_frame_index = i
+        max_accuracy = predict_score[i][true_label]
+
+    #统计选择关键帧情况的正确数据
+    top1_predicted_label = np.argmax(predict_score[key_frame_index])
+    if (top1_predicted_label == true_label):
+        right_count = right_count + 1
+
+    #统计随机选择一帧情况的正确数据
+    random_frame_index = random.randrange(0,valid_len)
+    top1_predicted_label = np.argmax(predict_score[random_frame_index])
+    if (top1_predicted_label == true_label):
+        random_right_count = random_right_count + 1
+
+    # Write results: dircrector name, true label, frame start index, key frame index, max accuracy
+    write_file.write('{} {} {} {} {}\n'.format(
+      read_dirnames[key_frame_index],
+      true_label,
+      frame_start_index,
+      key_frame_index,
+      predict_score[key_frame_index][true_label]))
+
+  accuracy = right_count / num_test_videos
+  random_accuracy = random_right_count / num_test_videos
   write_file.write("model file: " + model_file + "\n")
   write_file.write("total count: %d\n" % num_test_videos)
   write_file.write("right count: %d\n" % right_count)
-  write_file.write("accuracy: " + "{:.5f}\n".format(accuracy))
+  write_file.write("random right count: %d\n" % random_right_count)
+  write_file.write("key frame case accuracy: " + "{:.5f}\n".format(accuracy))
+  write_file.write("random frame case accuracy: " + "{:.5f}\n".format(random_accuracy))
   print("model file: " + model_file)
   print("total count: %d" % num_test_videos)
   print("right count: %d" % right_count)
+  print("random right count: %d" % random_right_count)
   print("accuracy: " + "{:.5f}".format(accuracy))
-  #20190502 su end
+  print("random accuracy: " + "{:.5f}".format(random_accuracy))
   write_file.close()
   print("done")
 

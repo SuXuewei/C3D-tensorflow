@@ -131,3 +131,79 @@ def read_clip_and_label(filename, batch_size, start_pos=-1, num_frames_per_clip=
   np_arr_label = np.array(label).astype(np.int64)
 
   return np_arr_data, np_arr_label, next_batch_start, read_dirnames, valid_len
+
+#20190509 su sta
+#读取vedio的16帧图片生成的16个16帧视频，每个视频都是用不同时序下的帧数据复制16得到的
+#这样来模拟单帧图片生成16帧视频，作为c3d模型的输入
+def read_vedio_clips_and_label(filename, start_pos=-1, num_frames_per_clip=16, crop_size=112, shuffle=False):
+  lines = open(filename,'r')
+  read_dirnames = []
+  data = []
+  label = []
+  image_index = []
+  batch_index = 0
+  next_batch_start = -1
+  tmp_img_datas = []
+  lines = list(lines)
+  np_mean = np.load('crop_mean.npy').reshape([num_frames_per_clip, crop_size, crop_size, 3])
+  # Forcing shuffle, if start_pos is not specified
+  if start_pos < 0:
+    shuffle = True
+  if shuffle:
+    #20190501 su sta
+    #video_indices = range(len(lines))
+    video_indices = list(range(len(lines)))
+    #20190501 su end
+    random.seed(time.time())
+    random.shuffle(video_indices)
+  else:
+    line = lines[start_pos].strip('\n').split()
+    dirname = line[0]
+    tmp_label = line[1]
+    tmp_start_index = line[2]
+    #print("dirname : " + dirname)
+    #print("tmp_label: %d" % int(tmp_label))
+    #print("tmp_start_index: %d" % int(tmp_start_index))
+    if not shuffle:
+      print("Loading a video clip from {}...".format(dirname))
+    tmp_data, _ = get_frames_data(dirname, int(tmp_start_index), num_frames_per_clip)
+    if(len(tmp_data)!=0):
+      for j in xrange(len(tmp_data)):
+        if(batch_index>=num_frames_per_clip):
+          break
+        img_datas = [];
+        img = Image.fromarray(tmp_data[j].astype(np.uint8))
+        if(img.width>img.height):
+          scale = float(crop_size)/float(img.height)
+          img = np.array(cv2.resize(np.array(img),(int(img.width * scale + 1), crop_size))).astype(np.float32)
+        else:
+          scale = float(crop_size)/float(img.width)
+          img = np.array(cv2.resize(np.array(img),(crop_size, int(img.height * scale + 1)))).astype(np.float32)
+        crop_x = int((img.shape[0] - crop_size)/2)
+        crop_y = int((img.shape[1] - crop_size)/2)
+        img = img[crop_x:crop_x+crop_size, crop_y:crop_y+crop_size,:] - np_mean[j]
+        for i in xrange(num_frames_per_clip):
+          img_datas.append(img)
+
+        tmp_img_datas = img_datas
+        batch_index = batch_index + 1
+        data.append(img_datas)
+        label.append(int(tmp_label))
+        image_index.append(int(tmp_start_index) + j)
+        read_dirnames.append(dirname)
+
+  # pad (duplicate) data/label if less than batch_size
+  frame_start_index = int(tmp_start_index)
+  valid_len = len(data)
+  pad_len = num_frames_per_clip - valid_len
+  if pad_len:
+    for i in range(pad_len):
+      data.append(tmp_img_datas)
+      label.append(int(tmp_label))
+
+  np_arr_data = np.array(data).astype(np.float32)
+  np_arr_label = np.array(label).astype(np.int64)
+
+  return np_arr_data, np_arr_label, next_batch_start, read_dirnames, frame_start_index
+
+#20190509 su end
