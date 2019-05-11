@@ -130,11 +130,13 @@ def run_test():
   # Create a saver for writing training checkpoints.
   model_file = tf.train.latest_checkpoint(model_save_dir)
   saver.restore(sess, model_file)
+
   write_file = open("key_frames.list", "w+")
   next_start_pos = 0
   right_count = 0
   random_right_count = 0
   random_frame_index = 0
+  random_test_loop_count = 100
   top1_predicted_label = 0
   for step in xrange(num_test_videos):
     start_time = time.time()
@@ -166,10 +168,11 @@ def run_test():
         right_count = right_count + 1
 
     #统计随机选择一帧情况的正确数据
-    random_frame_index = random.randrange(0,valid_len)
-    top1_predicted_label = np.argmax(predict_score[random_frame_index])
-    if (top1_predicted_label == true_label):
-        random_right_count = random_right_count + 1
+    for i in xrange(0, random_test_loop_count):
+      random_frame_index = random.randrange(0,valid_len)
+      top1_predicted_label = np.argmax(predict_score[random_frame_index])
+      if (top1_predicted_label == true_label):
+          random_right_count = random_right_count + 1
 
     # Write results: dircrector name, true label, frame start index, key frame index, max accuracy
     write_file.write('{} {} {} {} {}\n'.format(
@@ -180,17 +183,19 @@ def run_test():
       predict_score[key_frame_index][true_label]))
 
   accuracy = right_count / num_test_videos
-  random_accuracy = random_right_count / num_test_videos
+  random_accuracy = random_right_count / (random_test_loop_count * num_test_videos)
   write_file.write("model file: " + model_file + "\n")
   write_file.write("total count: %d\n" % num_test_videos)
   write_file.write("right count: %d\n" % right_count)
   write_file.write("random right count: %d\n" % random_right_count)
+  write_file.write("random test loop count: %d\n" % random_test_loop_count)
   write_file.write("key frame case accuracy: " + "{:.5f}\n".format(accuracy))
   write_file.write("random frame case accuracy: " + "{:.5f}\n".format(random_accuracy))
   print("model file: " + model_file)
   print("total count: %d" % num_test_videos)
   print("right count: %d" % right_count)
   print("random right count: %d" % random_right_count)
+  print("random test loop count: %d" % random_test_loop_count)
   print("accuracy: " + "{:.5f}".format(accuracy))
   print("random accuracy: " + "{:.5f}".format(random_accuracy))
   write_file.close()
