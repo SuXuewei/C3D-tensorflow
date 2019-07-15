@@ -6,4 +6,5 @@ visual_logs/
 *.list
 list/*.list
 .ideal/
-
+data/
+test_target_dir/
